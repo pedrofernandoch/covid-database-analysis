@@ -26,3 +26,25 @@ SELECT * FROM exames ex
 JOIN pacientes p ON p.id_paciente = ex.id_paciente
 JOIN desfechos d ON p.id_paciente = d.id_paciente
 WHERE ex.de_origem = 'Unidades de Internação';
+
+-- Criação de índice para exames.de_origem
+CREATE INDEX origExUnidIntern ON exames(id_exame)
+	WHERE de_origem = 'Unidades de Internação';
+
+/*
+
+CREATE INDEX origExUnidIntern ON exames(de_origem)
+	WHERE de_origem = 'Unidades de Internação';
+
+CREATE INDEX origExUnidIntern ON exames USING HASH (de_origem);
+
+CREATE INDEX origExUnidIntern ON exames(id_exame, id_paciente, id_atendimento)
+	WHERE de_origem = 'Unidades de Internação';
+
+CREATE INDEX idExPacAtd ON exames(id_exame, id_paciente, id_atendimento);
+
+DROP INDEX origExUnidIntern;
+
+DROP INDEX idExPacAtd;
+*/
+
