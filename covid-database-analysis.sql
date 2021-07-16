@@ -1,33 +1,41 @@
-/****** QuestÃ£o 1 ******/
--- OBS: Colher tempo de execuÃ§Ã£o e as 20 primeiras tuplas para cada consulta
+/****** Questão 1 ******/
+-- OBS: Colher tempo de execução e as 20 primeiras tuplas para cada consulta
 
 -- 	Parte 1: consulta frequente disponibilizada 
 SELECT * FROM exames ex
 	JOIN pacientes p ON p . id_paciente = ex . id_paciente
 	JOIN desfechos d ON p . id_paciente = d . id_paciente
-	WHERE ex . de_origem = 'Unidades de InternaÃ§Ã£o'
+	WHERE ex . de_origem = 'Unidades de Internação'
 	LIMIT 20;
 
 EXPLAIN ANALYZE
 	SELECT * FROM exames ex
 		JOIN pacientes p ON p . id_paciente = ex . id_paciente
 		JOIN desfechos d ON p . id_paciente = d . id_paciente
-		WHERE ex . de_origem = 'Unidades de InternaÃ§Ã£o';
+		WHERE ex . de_origem = 'Unidades de Internação';
 	
--- Parte 2: consulta frequente disponibilizada com uso de Ã­ndices
+-- Parte 2: consulta frequente disponibilizada com uso de índices
+CREATE INDEX origExUnidIntern ON exames(id_exame)
+	WHERE de_origem = 'Unidades de Internação';
 
+EXPLAIN ANALYZE
+	SELECT * FROM exames ex
+		JOIN pacientes p ON p . id_paciente = ex . id_paciente
+		JOIN desfechos d ON p . id_paciente = d . id_paciente
+		WHERE ex . de_origem = 'Unidades de Internação';
+	
 -- Parte 3: consulta frequente proposta
 
--- Parte 4: consulta frequente proposta com uso de Ã­ndices
+-- Parte 4: consulta frequente proposta com uso de índices
 
 /* 
-	RELATÃ“RIO: Justificar a consulta criada e a implementaÃ§Ã£o do Ã­ndice de acordo com a consulta, explicitando o
-	porquÃª do Ã­ndice otimizar tal consulta, conforme visto durante as aulas.
+	RELATÓRIO: Justificar a consulta criada e a implementação do índice de acordo com a consulta, explicitando o
+	porquê do índice otimizar tal consulta, conforme visto durante as aulas.
 */
 
-/****** QuestÃ£o 2 ******/
+/****** Questão 2 ******/
 
--- 	Parte 1: rotina para criar senha automÃ¡tica para novos pacientes que serÃ£o inseridos na base
+-- 	Parte 1: rotina para criar senha automática para novos pacientes que serão inseridos na base
 CREATE EXTENSION pgcrypto;
 CREATE OR REPLACE FUNCTION password_hash(passwordString TEXT)
 RETURNS TEXT
@@ -36,13 +44,13 @@ AS $$
 	DECLARE MessageText TEXT;
 		HintText TEXT;
 	BEGIN
-		IF passwordString IS NULL OR passwordString = '' THEN -- Conferindo se nÃ£o Ã© nulo
+		IF passwordString IS NULL OR passwordString = '' THEN -- Conferindo se não é nulo
 			RAISE EXCEPTION null_value_not_allowed USING MESSAGE = 'Senha nula', HINT = 'Insira uma senha para ober seu retorno criptografado';
 			RETURN NULL;
 		ELSE -- Retornando senha criptografada
 			RETURN crypt(passwordString, gen_salt('md5'));
 		END IF;
-	EXCEPTION -- Imprimindo exceÃ§Ãµes encontradas
+	EXCEPTION -- Imprimindo exceções encontradas
 			WHEN OTHERS THEN
 				GET STACKED DIAGNOSTICS MessageText = MESSAGE_TEXT,	HintText = PG_EXCEPTION_HINT;
 				RAISE NOTICE E'Erro: %\nMensagem: %\nDica: %',
@@ -54,32 +62,32 @@ $$
 ALTER TABLE pacientes
     ADD COLUMN pwd text;
 	
--- Criando tabela temporÃ¡ria
+-- Criando tabela temporária
 CREATE TABLE temp_pacientes AS 
 	SELECT * FROM pacientes LIMIT 5;
 
--- Atualizando senhas usando funÃ§Ã£o de hash
+-- Atualizando senhas usando função de hash
 UPDATE temp_pacientes
 	SET pwd = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
 
--- Verificando atualizaÃ§Ã£o
+-- Verificando atualização
 SELECT * FROM pacientes LIMIT 5;
 SELECT * FROM temp_pacientes;
 
--- Testando autenticaÃ§Ã£o
+-- Testando autenticação
 SELECT (pwd = crypt(CONCAT(id_paciente, ic_sexo, aa_nascimento), pwd)) AS pswmatch FROM temp_pacientes WHERE id_paciente = '8F3A4E28494D5DC7CE33BCB1DD4A3B50';
 -- Retorno esperado: true
 SELECT (pwd = crypt(CONCAT('senha errada'), pwd)) AS pswmatch FROM temp_pacientes WHERE id_paciente = '8F3A4E28494D5DC7CE33BCB1DD4A3B50';
 -- Retorno esperado: false
 
--- Removendo tabela temporÃ¡ria
+-- Removendo tabela temporária
 DROP TABLE temp_pacientes;
 
--- Atualizando senhas usando funÃ§Ã£o hash
+-- Atualizando senhas usando função hash
 UPDATE pacientes
 	SET pwd = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
 	
--- Criando trigger para criar senhas automaticamente apÃ³s o paciente ser inseiro
+-- Criando trigger para criar senhas automaticamente após o paciente ser inseiro
 CREATE TRIGGER setPwd
     AFTER INSERT ON pacientes
     FOR EACH ROW
@@ -94,7 +102,7 @@ INSERT INTO pacientes(
 	
 SELECT * from pacientes WHERE id_paciente = '?';
 
--- 	Parte 2: criar tabela LogAcesso (data/hora, tipo de operaÃ§Ã£o e tabela requisitada/alterada)
+-- 	Parte 2: criar tabela LogAcesso (data/hora, tipo de operação e tabela requisitada/alterada)
 CREATE TABLE LogAcesso
 (
     id bigserial NOT NULL,
@@ -110,9 +118,9 @@ CREATE OR REPLACE TRIGGER LogPacientes
 	FOR EACH ROW
 	DECLARE	operacao CHAR;
 	BEGIN
-		IF INSERTING THEN operacao := â€˜Iâ€™;
-		ELSIF UPDATING THEN operacao := â€˜Uâ€™;
-		ELSIF DELETING THEN operacao := â€˜Dâ€™;
+		IF INSERTING THEN operacao := ‘I’;
+		ELSIF UPDATING THEN operacao := ‘U’;
+		ELSIF DELETING THEN operacao := ‘D’;
 		END IF;
 		INSERT INTO LogAcesso
 		VALUES (USER, SYSDATE, operacao);
@@ -123,9 +131,9 @@ CREATE OR REPLACE TRIGGER LogExames
 	FOR EACH ROW
 	DECLARE	operacao CHAR;
 	BEGIN
-		IF INSERTING THEN operacao := â€˜Iâ€™;
-		ELSIF UPDATING THEN operacao := â€˜Uâ€™;
-		ELSIF DELETING THEN operacao := â€˜Dâ€™;
+		IF INSERTING THEN operacao := ‘I’;
+		ELSIF UPDATING THEN operacao := ‘U’;
+		ELSIF DELETING THEN operacao := ‘D’;
 		END IF;
 		INSERT INTO LogAcesso
 		VALUES (USER, SYSDATE, operacao);
@@ -136,36 +144,36 @@ CREATE OR REPLACE TRIGGER LogDesfechos
 	FOR EACH ROW
 	DECLARE	operacao CHAR;
 	BEGIN
-		IF INSERTING THEN operacao := â€˜Iâ€™;
-		ELSIF UPDATING THEN operacao := â€˜Uâ€™;
-		ELSIF DELETING THEN operacao := â€˜Dâ€™;
+		IF INSERTING THEN operacao := ‘I’;
+		ELSIF UPDATING THEN operacao := ‘U’;
+		ELSIF DELETING THEN operacao := ‘D’;
 		END IF;
 		INSERT INTO LogAcesso
 		VALUES (USER, SYSDATE, operacao);
 	END;
 
-/* 	Parte 3: rotina para criar logs na tabela LogAcesso quando os acessos e transaÃ§Ãµes sÃ£o realizados na base de dados
-OBS: deve analisar trÃªs situaÃ§Ãµes pertinentes para realizar a coleta da informaÃ§Ã£o automaticamente */
+/* 	Parte 3: rotina para criar logs na tabela LogAcesso quando os acessos e transações são realizados na base de dados
+OBS: deve analisar três situações pertinentes para realizar a coleta da informação automaticamente */
 
 /* 
-	RELATÃ“RIO: as situaÃ§Ãµes devem ser devidamente registradas e validadas por meios
-	de testes, alÃ©m de serem sucintamente explicadas, em relaÃ§Ã£o a semÃ¢ntica da
-	operaÃ§Ã£o e relevÃ¢ncia para o sistema em si.
+	RELATÓRIO: as situações devem ser devidamente registradas e validadas por meios
+	de testes, além de serem sucintamente explicadas, em relação a semântica da
+	operação e relevância para o sistema em si.
 */
 
-/****** QuestÃ£o 3 ******/
+/****** Questão 3 ******/
 
-/* 	Parte 1: Que tipo de informaÃ§Ãµes relacionadas a COVID Ã© possÃ­vel recuperar analisando
+/* 	Parte 1: Que tipo de informações relacionadas a COVID é possível recuperar analisando
 os tipos de exames e analitos registrados? */
 
 /* 	Parte 2: Analisando a quantidade de registros de um determinado exame de COVID em
-relaÃ§Ã£o a data de coleta ou perÃ­odo (por exemplo semanal), Ã© possÃ­vel indicar tendÃªncias de alta
-e/ou baixa que auxiliariam a especialistas mÃ©dicos em analises futuras? */
+relação a data de coleta ou período (por exemplo semanal), é possível indicar tendências de alta
+e/ou baixa que auxiliariam a especialistas médicos em analises futuras? */
 
-/* 	Parte 3: Que tipo de informaÃ§Ãµes adicionais, em versÃµes futuras da base de dados, poderiam
+/* 	Parte 3: Que tipo de informações adicionais, em versões futuras da base de dados, poderiam
 ser coletadas em novos hospitais para melhorar a qualidade dos dados analisados? */
 
 /* 
-	RELATÃ“RIO: Ã© necessÃ¡rio realizar uma anÃ¡lise exploratÃ³ria nos dados, selecionando informaÃ§Ãµes relevantes
-	com base em algum critÃ©rio pertinente, justificando sua relevÃ¢ncia no auxÃ­lio a especialistas.
+	RELATÓRIO: é necessário realizar uma análise exploratória nos dados, selecionando informações relevantes
+	com base em algum critério pertinente, justificando sua relevância no auxílio a especialistas.
 */
