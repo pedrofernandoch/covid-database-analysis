@@ -5,8 +5,8 @@
 SELECT * FROM exames ex
 	JOIN pacientes p ON p . id_paciente = ex . id_paciente
 	JOIN desfechos d ON p . id_paciente = d . id_paciente
-	WHERE ex . de_origem = 'Unidades de Internação'
-	LIMIT 20;
+WHERE ex . de_origem = 'Unidades de Internação'
+LIMIT 20;
 
 EXPLAIN ANALYZE
 	SELECT * FROM exames ex
@@ -25,8 +25,8 @@ EXPLAIN ANALYZE
 	WHERE ex.de_origem = 'Unidades de Internação';
 
 -- Parte 3: consulta frequente proposta
----- Contar quantas pessoas, agrupadas por idade, testaram positivo para covid em um determinado mês 
-SELECT COUNT(e.*) AS casos_positivos, (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade 
+---- Contar quantos pacientes, agrupados por idade, testaram positivo para covid em um determinado mês 
+SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos  
 	FROM pacientes p, exames e
 WHERE p.id_paciente = e.id_paciente
 	AND upper(e.de_resultado) LIKE '%POSITIVO%'
@@ -37,7 +37,7 @@ GROUP BY idade
 ORDER BY casos_positivos DESC;
 
 EXPLAIN ANALYZE
-	SELECT COUNT(e.*) AS casos_positivos, (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade 
+	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos   
 		FROM pacientes p, exames e
 	WHERE p.id_paciente = e.id_paciente
 		AND upper(e.de_resultado) LIKE '%POSITIVO%'
@@ -48,7 +48,19 @@ EXPLAIN ANALYZE
 	ORDER BY casos_positivos DESC;
 
 -- Parte 4: consulta frequente proposta com uso de índices
+CREATE INDEX exameCovid ON exames(id_exame)
+	WHERE upper(de_exame) LIKE '%COVID%';
 
+EXPLAIN ANALYZE
+	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos   
+		FROM pacientes p, exames e
+	WHERE p.id_paciente = e.id_paciente
+		AND upper(e.de_resultado) LIKE '%POSITIVO%'
+		AND upper(e.de_exame) LIKE '%COVID%'
+		AND upper(e.de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
+		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
+	GROUP BY idade
+	ORDER BY casos_positivos DESC;
 
 /* 
 	RELATÓRIO: Justificar a consulta criada e a implementação do índice de acordo com a consulta, explicitando o
