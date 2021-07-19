@@ -26,11 +26,15 @@ EXPLAIN ANALYZE
 
 -- Parte 3: consulta frequente proposta
 ---- Contar quantos pacientes, agrupados por idade, testaram positivo para covid em um determinado mês 
-SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos  
+SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(DISTINCT e.id_paciente) AS casos_positivos  
 	FROM pacientes p, exames e
 WHERE p.id_paciente = e.id_paciente
-	AND upper(e.de_resultado) LIKE '%POSITIVO%'
 	AND upper(e.de_exame) LIKE '%COVID%'
+	AND (upper(e.de_resultado) LIKE '%POSITIVO%' 
+			OR upper(e.de_resultado) LIKE 'DETECTADO%'
+			OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
+			OR upper(e.de_resultado) LIKE 'REAGENTE%'
+			OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
 	AND upper(e.de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
 	AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 GROUP BY idade
@@ -38,11 +42,15 @@ ORDER BY casos_positivos DESC
 LIMIT 20;
 
 EXPLAIN ANALYZE
-	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos   
+	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(DISTINCT e.id_paciente) AS casos_positivos  
 		FROM pacientes p, exames e
 	WHERE p.id_paciente = e.id_paciente
-		AND upper(e.de_resultado) LIKE '%POSITIVO%'
 		AND upper(e.de_exame) LIKE '%COVID%'
+		AND (upper(e.de_resultado) LIKE '%POSITIVO%' 
+				OR upper(e.de_resultado) LIKE 'DETECTADO%'
+				OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
+				OR upper(e.de_resultado) LIKE 'REAGENTE%'
+				OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
 		AND upper(e.de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
 		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 	GROUP BY idade
@@ -53,11 +61,15 @@ CREATE INDEX exameCovid ON exames(id_exame)
 	WHERE upper(de_exame) LIKE '%COVID%';
 
 EXPLAIN ANALYZE
-	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(e.*) AS casos_positivos   
+	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(DISTINCT e.id_paciente) AS casos_positivos  
 		FROM pacientes p, exames e
 	WHERE p.id_paciente = e.id_paciente
-		AND upper(e.de_resultado) LIKE '%POSITIVO%'
 		AND upper(e.de_exame) LIKE '%COVID%'
+		AND (upper(e.de_resultado) LIKE '%POSITIVO%' 
+				OR upper(e.de_resultado) LIKE 'DETECTADO%'
+				OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
+				OR upper(e.de_resultado) LIKE 'REAGENTE%'
+				OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
 		AND upper(e.de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
 		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 	GROUP BY idade
