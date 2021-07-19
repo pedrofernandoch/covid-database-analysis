@@ -1,31 +1,31 @@
-/****** Quest„o 1 ******/
--- OBS: Colher tempo de execuÁ„o e as 20 primeiras tuplas para cada consulta
+/****** Quest√£o 1 ******/
+-- OBS: Colher tempo de execu√ß√£o e as 20 primeiras tuplas para cada consulta
 
 -- 	Parte 1: consulta frequente disponibilizada 
 SELECT * FROM exames ex
 JOIN pacientes p ON p . id_paciente = ex . id_paciente
 JOIN desfechos d ON p . id_paciente = d . id_paciente
-WHERE ex . de_origem = 'Unidades de InternaÁ„o'
+WHERE ex . de_origem = 'Unidades de Interna√ß√£o'
 LIMIT 20;
 
 EXPLAIN ANALYZE
 	SELECT * FROM exames ex
 	JOIN pacientes p ON p.id_paciente = ex.id_paciente
 	JOIN desfechos d ON p.id_paciente = d.id_paciente
-	WHERE ex.de_origem = 'Unidades de InternaÁ„o';
+	WHERE ex.de_origem = 'Unidades de Interna√ß√£o';
 	
--- Parte 2: consulta frequente disponibilizada com uso de Ìndices
+-- Parte 2: consulta frequente disponibilizada com uso de √≠ndices
 CREATE INDEX origExUnidIntern ON exames(id_exame)
-	WHERE de_origem = 'Unidades de InternaÁ„o';
+	WHERE de_origem = 'Unidades de Interna√ß√£o';
 
 EXPLAIN ANALYZE
 	SELECT * FROM exames ex
 	JOIN pacientes p ON p.id_paciente = ex.id_paciente
 	JOIN desfechos d ON p.id_paciente = d.id_paciente
-	WHERE ex.de_origem = 'Unidades de InternaÁ„o';
+	WHERE ex.de_origem = 'Unidades de Interna√ß√£o';
 
 -- Parte 3: consulta frequente proposta
----- Contar quantos pacientes, agrupados por idade, testaram positivo para covid em um determinado mÍs 
+---- Contar quantos pacientes, agrupados por idade, testaram positivo para covid em um determinado m√™s 
 SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(DISTINCT e.id_paciente) AS casos_positivos  
 	FROM pacientes p, exames e
 WHERE p.id_paciente = e.id_paciente
@@ -35,7 +35,7 @@ WHERE p.id_paciente = e.id_paciente
 			OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
 			OR upper(e.de_resultado) LIKE 'REAGENTE%'
 			OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
-	AND upper(e.de_resultado) NOT LIKE '%A DIN¬MICA DE PRODU«√O DE ANTICORPOS NA COVID-19 AINDA N√O … BEM ESTABELECIDA%'
+	AND upper(e.de_resultado) NOT LIKE '%A DIN√ÇMICA DE PRODU√á√ÉO DE ANTICORPOS NA COVID-19 AINDA N√ÉO √â BEM ESTABELECIDA%'
 	AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 GROUP BY idade
 ORDER BY casos_positivos DESC
@@ -51,12 +51,12 @@ EXPLAIN ANALYZE
 				OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
 				OR upper(e.de_resultado) LIKE 'REAGENTE%'
 				OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
-		AND upper(e.de_resultado) NOT LIKE '%A DIN¬MICA DE PRODU«√O DE ANTICORPOS NA COVID-19 AINDA N√O … BEM ESTABELECIDA%'
+		AND upper(e.de_resultado) NOT LIKE '%A DIN√ÇMICA DE PRODU√á√ÉO DE ANTICORPOS NA COVID-19 AINDA N√ÉO √â BEM ESTABELECIDA%'
 		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 	GROUP BY idade
 	ORDER BY casos_positivos DESC;
 
--- Parte 4: consulta frequente proposta com uso de Ìndices
+-- Parte 4: consulta frequente proposta com uso de √≠ndices
 CREATE INDEX exameCovid ON exames(id_exame)
 	WHERE upper(de_exame) LIKE '%COVID%';
 
@@ -70,19 +70,21 @@ EXPLAIN ANALYZE
 				OR upper(e.de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
 				OR upper(e.de_resultado) LIKE 'REAGENTE%'
 				OR upper(e.de_resultado) LIKE 'AMOSTRA REAGENTE%')
-		AND upper(e.de_resultado) NOT LIKE '%A DIN¬MICA DE PRODU«√O DE ANTICORPOS NA COVID-19 AINDA N√O … BEM ESTABELECIDA%'
+		AND upper(e.de_resultado) NOT LIKE '%A DIN√ÇMICA DE PRODU√á√ÉO DE ANTICORPOS NA COVID-19 AINDA N√ÉO √â BEM ESTABELECIDA%'
 		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 	GROUP BY idade
 	ORDER BY casos_positivos DESC;
 
 /* 
-	RELAT”RIO: Justificar a consulta criada e a implementaÁ„o do Ìndice de acordo com a consulta, explicitando o
-	porquÍ do Ìndice otimizar tal consulta, conforme visto durante as aulas.
+	RELAT√ìRIO: Justificar a consulta criada e a implementa√ß√£o do √≠ndice de acordo com a consulta, explicitando o
+	porqu√™ do √≠ndice otimizar tal consulta, conforme visto durante as aulas.
 */
 
-/****** Quest„o 2 ******/
+/****** Quest√£o 2 ******/
 
--- 	Parte 1: rotina para criar senha autom·tica para novos pacientes que ser„o inseridos na base
+-- 	Parte 1: rotina para criar senha autom√°tica para novos pacientes que ser√£o inseridos na base
+
+-- Criando fun√ß√£o para gerar senha
 CREATE EXTENSION pgcrypto;
 CREATE OR REPLACE FUNCTION password_hash(passwordString TEXT)
 RETURNS TEXT
@@ -91,13 +93,13 @@ AS $$
 	DECLARE MessageText TEXT;
 		HintText TEXT;
 	BEGIN
-		IF passwordString IS NULL OR passwordString = '' THEN -- Conferindo se n„o È nulo
+		IF passwordString IS NULL OR passwordString = '' THEN -- Conferindo se n√£o √© nulo
 			RAISE EXCEPTION null_value_not_allowed USING MESSAGE = 'Senha nula', HINT = 'Insira uma senha para ober seu retorno criptografado';
 			RETURN NULL;
 		ELSE -- Retornando senha criptografada
 			RETURN crypt(passwordString, gen_salt('md5'));
 		END IF;
-	EXCEPTION -- Imprimindo exceÁıes encontradas
+	EXCEPTION -- Imprimindo exce√ß√µes encontradas
 			WHEN OTHERS THEN
 				GET STACKED DIAGNOSTICS MessageText = MESSAGE_TEXT,	HintText = PG_EXCEPTION_HINT;
 				RAISE NOTICE E'Erro: %\nMensagem: %\nDica: %',
@@ -105,122 +107,155 @@ AS $$
 	END;
 $$
 
--- Adicionando campo pwd na tabela pacientes
+-- Adicionando campo senha na tabela pacientes
 ALTER TABLE pacientes
-    ADD COLUMN pwd text;
+    ADD COLUMN senha text;
 	
--- Criando tabela tempor·ria
+-- Criando tabela tempor√°ria
 CREATE TABLE temp_pacientes AS 
 	SELECT * FROM pacientes LIMIT 5;
 
--- Atualizando senhas usando funÁ„o de hash
+-- Atualizando senhas usando fun√ß√£o de hash
 UPDATE temp_pacientes
-	SET pwd = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
+	SET senha = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
 
--- Verificando atualizaÁ„o
+-- Verificando atualiza√ß√£o
 SELECT * FROM pacientes LIMIT 5;
 SELECT * FROM temp_pacientes;
 
--- Testando autenticaÁ„o
-SELECT (pwd = crypt(CONCAT(id_paciente, ic_sexo, aa_nascimento), pwd)) AS pswmatch FROM temp_pacientes WHERE id_paciente = '8F3A4E28494D5DC7CE33BCB1DD4A3B50';
+-- Testando autentica√ß√£o
+SELECT (senha = crypt(CONCAT('d9fec23b3820f93a961841d569db8cb5', 'F', '1974'), senha)) AS senhaConfere FROM temp_pacientes WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
 -- Retorno esperado: true
-SELECT (pwd = crypt(CONCAT('senha errada'), pwd)) AS pswmatch FROM temp_pacientes WHERE id_paciente = '8F3A4E28494D5DC7CE33BCB1DD4A3B50';
+SELECT (senha = crypt('senha errada', senha)) AS senhaConfere FROM temp_pacientes WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
 -- Retorno esperado: false
 
--- Removendo tabela tempor·ria
+-- Removendo tabela tempor√°ria
 DROP TABLE temp_pacientes;
 
--- Atualizando senhas usando funÁ„o hash
+-- Atualizando senhas usando fun√ß√£o hash
 UPDATE pacientes
-	SET pwd = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
+	SET senha = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
 	
--- Criando trigger para criar senhas automaticamente apÛs o paciente ser inseiro
-CREATE TRIGGER setPwd
-    AFTER INSERT ON pacientes
-    FOR EACH ROW
+-- Criando fun√ß√£o que retorna trigger para criar senhas automaticamente ap√≥s o paciente ser inserido
+CREATE OR REPLACE FUNCTION setPwdTriggerFunction() 
+	RETURNS TRIGGER 
+	LANGUAGE PLPGSQL
+	AS $$
 	BEGIN
-		NEW.pwd = password_hash(CONCAT(NEW.id_paciente, NEW.ic_sexo, NEW.aa_nascimento));
+		NEW.senha = password_hash(CONCAT(NEW.id_paciente, NEW.ic_sexo, NEW.aa_nascimento));
+		RETURN NEW;
 	END;
+	$$
+	
+-- Criando trigger que utilizar√° a fun√ß√£o
+CREATE TRIGGER setPwd
+    BEFORE INSERT ON pacientes
+    FOR EACH ROW
+	EXECUTE PROCEDURE setPwdTriggerFunction();
 	
 -- Testando trigger
 INSERT INTO pacientes(
 	id_paciente, ic_sexo, aa_nascimento, cd_pais, cd_uf, cd_municipio, cd_cepreduzido, id_hospital)
-	VALUES ('?', '?', '?', '?', '?', '?', '?', '?');
+	VALUES ('novoPacienteTeste', 'M', 2000, 'BR', 'SP', 'MMMMM', 'CCCC', 0);
 	
-SELECT * from pacientes WHERE id_paciente = '?';
+SELECT senha from pacientes WHERE id_paciente = 'novoPacienteTeste';
 
--- 	Parte 2: criar tabela LogAcesso (data/hora, tipo de operaÁ„o e tabela requisitada/alterada)
+-- Testando autentica√ß√£o
+SELECT (senha = crypt(CONCAT('novoPacienteTeste', 'M', '2000'), senha)) AS senhaConfere FROM pacientes WHERE id_paciente = 'novoPacienteTeste';
+-- Retorno esperado: true
+SELECT (senha = crypt('senha errada', senha)) AS senhaConfere FROM pacientes WHERE id_paciente = 'novoPacienteTeste';
+-- Retorno esperado: false
+
+-- 	Parte 2: criar tabela LogAcesso (Campos necess√°rios: data/hora, tipo de opera√ß√£o e tabela requisitada/alterada)
+
+-- Criando tabela LogAcesso
 CREATE TABLE LogAcesso
 (
     id bigserial NOT NULL,
-	user 
-    carimbo_de_tempo timestamp without time zone NOT NULL,
-	operacao char NOT NULL,
+	autor char(50) NOT NULL,
+    carimbo_de_tempo timestamp NOT NULL,
+	operacao char(8) NOT NULL,
     tabela char(30) NOT NULL,
     PRIMARY KEY (id)
 );
 
-CREATE OR REPLACE TRIGGER LogPacientes
+/* 	Parte 3: rotina para criar logs na tabela LogAcesso quando os acessos e transa√ß√µes s√£o realizados na base de dados
+OBS: deve analisar tr√™s situa√ß√µes pertinentes para realizar a coleta da informa√ß√£o automaticamente */
+
+-- Criando fun√ß√£o que retorna trigger para inserir os logs na tabela LogAcesso
+CREATE OR REPLACE FUNCTION newLogTriggerFunction() 
+	RETURNS TRIGGER 
+	LANGUAGE PLPGSQL
+	AS $$
+	DECLARE	operacao CHAR;
+	BEGIN
+		INSERT INTO LogAcesso(
+			autor, carimbo_de_tempo, operacao, tabela)
+			VALUES (USER, NOW(), TG_OP, TG_TABLE_NAME);
+		RETURN NEW;
+	END;
+	$$
+
+-- Criando trigger para tabela LogPacientes que utilizar√° a fun√ß√£o
+CREATE TRIGGER LogPacientes
 	AFTER INSERT OR UPDATE OR DELETE ON pacientes
 	FOR EACH ROW
-	DECLARE	operacao CHAR;
-	BEGIN
-		IF INSERTING THEN operacao := ëIí;
-		ELSIF UPDATING THEN operacao := ëUí;
-		ELSIF DELETING THEN operacao := ëDí;
-		END IF;
-		INSERT INTO LogAcesso
-		VALUES (USER, SYSDATE, operacao);
-	END;
+	EXECUTE PROCEDURE newLogTriggerFunction();
 
-CREATE OR REPLACE TRIGGER LogExames
+-- Adicionando paciente para gerar log
+INSERT INTO pacientes(
+	id_paciente, ic_sexo, aa_nascimento, cd_pais, cd_uf, cd_municipio, cd_cepreduzido, id_hospital)
+	VALUES ('testePacienteTrigger', 'F', 2000, 'BR', 'SP', 'MMMMM', 'CCCC', 1);
+
+-- Criando trigger para tabela LogPacientes que utilizar√° a fun√ß√£o
+CREATE TRIGGER LogExames
 	AFTER INSERT OR UPDATE OR DELETE ON exames
 	FOR EACH ROW
-	DECLARE	operacao CHAR;
-	BEGIN
-		IF INSERTING THEN operacao := ëIí;
-		ELSIF UPDATING THEN operacao := ëUí;
-		ELSIF DELETING THEN operacao := ëDí;
-		END IF;
-		INSERT INTO LogAcesso
-		VALUES (USER, SYSDATE, operacao);
-	END;
+	EXECUTE PROCEDURE newLogTriggerFunction();
+	
+-- Adicionando exame para gerar log
+INSERT INTO exames(
+	id_exame, id_paciente, id_atendimento, dt_coleta, de_origem, de_exame, de_analito, de_resultado, cd_unidade, de_valor_referencia, id_hospital)
+	VALUES (10000000, 'testePacienteTrigger', 'testeAtendimentoTrigger', '2020-07-19', 'HOSP', 'proteinuria', 'proteinuria', '1090', 'mL', '', 1);
 
-CREATE OR REPLACE TRIGGER LogDesfechos
+-- Criando trigger para tabela LogPacientes que utilizar√° a fun√ß√£o
+CREATE TRIGGER LogDesfechos
 	AFTER INSERT OR UPDATE OR DELETE ON desfechos
 	FOR EACH ROW
-	DECLARE	operacao CHAR;
-	BEGIN
-		IF INSERTING THEN operacao := ëIí;
-		ELSIF UPDATING THEN operacao := ëUí;
-		ELSIF DELETING THEN operacao := ëDí;
-		END IF;
-		INSERT INTO LogAcesso
-		VALUES (USER, SYSDATE, operacao);
-	END;
+	EXECUTE PROCEDURE newLogTriggerFunction();
 
-/* 	Parte 3: rotina para criar logs na tabela LogAcesso quando os acessos e transaÁıes s„o realizados na base de dados
-OBS: deve analisar trÍs situaÁıes pertinentes para realizar a coleta da informaÁ„o automaticamente */
+-- Adicionando desfecho para gerar log
+INSERT INTO desfechos(
+	id_paciente, id_atendimento, dt_atendimento, de_tipo_atendimento, id_clinica, de_clinica, dt_desfecho, de_desfecho, id_hospital)
+	VALUES ('testePacienteTrigger', 'testeAtendimentoTrigger', '2020-07-19', 'Ambulatorial', 11, 'Consulta', '2020-08-19', 'Alta a pedido', 1);
+
+-- Deletando paciente teste, exame teste e desfecho teste
+DELETE FROM desfechos WHERE id_paciente = 'testePacienteTrigger' AND id_atendimento = 'testeAtendimentoTrigger';
+DELETE FROM exames WHERE id_exame = 10000000;
+DELETE FROM pacientes WHERE id_paciente = 'testePacienteTrigger';
+
+-- Vendo logs gerados
+SELECT * FROM LogAcesso;
 
 /* 
-	RELAT”RIO: as situaÁıes devem ser devidamente registradas e validadas por meios
-	de testes, alÈm de serem sucintamente explicadas, em relaÁ„o a sem‚ntica da
-	operaÁ„o e relev‚ncia para o sistema em si.
+	RELAT√ìRIO: as situa√ß√µes devem ser devidamente registradas e validadas por meios
+	de testes, al√©m de serem sucintamente explicadas, em rela√ß√£o a sem√¢ntica da
+	opera√ß√£o e relev√¢ncia para o sistema em si.
 */
 
-/****** Quest„o 3 ******/
+/****** Quest√£o 3 ******/
 
-/* 	Parte 1: Que tipo de informaÁıes relacionadas a COVID È possÌvel recuperar analisando
+/* 	Parte 1: Que tipo de informa√ß√µes relacionadas a COVID √© poss√≠vel recuperar analisando
 os tipos de exames e analitos registrados? */
 
 /* 	Parte 2: Analisando a quantidade de registros de um determinado exame de COVID em
-relaÁ„o a data de coleta ou perÌodo (por exemplo semanal), È possÌvel indicar tendÍncias de alta
-e/ou baixa que auxiliariam a especialistas mÈdicos em analises futuras? */
+rela√ß√£o a data de coleta ou per√≠odo (por exemplo semanal), √© poss√≠vel indicar tend√™ncias de alta
+e/ou baixa que auxiliariam a especialistas m√©dicos em analises futuras? */
 
-/* 	Parte 3: Que tipo de informaÁıes adicionais, em versıes futuras da base de dados, poderiam
+/* 	Parte 3: Que tipo de informa√ß√µes adicionais, em vers√µes futuras da base de dados, poderiam
 ser coletadas em novos hospitais para melhorar a qualidade dos dados analisados? */
 
 /* 
-	RELAT”RIO: È necess·rio realizar uma an·lise exploratÛria nos dados, selecionando informaÁıes relevantes
-	com base em algum critÈrio pertinente, justificando sua relev‚ncia no auxÌlio a especialistas.
+	RELAT√ìRIO: √© necess√°rio realizar uma an√°lise explorat√≥ria nos dados, selecionando informa√ß√µes relevantes
+	com base em algum crit√©rio pertinente, justificando sua relev√¢ncia no aux√≠lio a especialistas.
 */
