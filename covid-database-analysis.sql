@@ -266,14 +266,85 @@ SELECT * FROM LogAcesso;
 /* 	Parte 1: Que tipo de informações relacionadas a COVID é possível recuperar analisando
 os tipos de exames e analitos registrados? */
 
+-- Pegando todos os tipos de exames de covid distintos
+SELECT de_exame, COUNT(de_exame) AS quantidade FROM exames WHERE upper(de_exame) LIKE '%COVID%' GROUP BY de_exame;
+/*
+Output:
+"covid-19-pcr para sars-cov-2, vários materiais (fleury)"	12160
+"covid-19-sorologia igm e igg por quimiluminescência, soro"	5467
+"covid-19-teste rápido (igm e igg), soro"	398
+"covid-19 - pesquisa de anticorpos igg"	1518
+"covid-19, anticorpos iga e igg, soro"	30
+"covid teste líquor"	11
+"teste rápido para covid-19 de ponta de dedo"	1
+"teste rápido para sars-cov-2- pesquisa de anticorpos igg e igm (sorologia para covid-19)"	291
+*/
+
+/* Pergunta: se a diferenã de porcentagem de casos positivos entre os exames for muito alta,
+isso pode indicar que um exame tem mais falsos negativos que o outro? */
+SELECT de_exame, COUNT(DISTINCT(id_paciente)) AS casos_positivos FROM exames
+		WHERE de_exame = 'covid-19-pcr para sars-cov-2, vários materiais (fleury)' OR de_exame = 'covid-19-sorologia igm e igg por quimiluminescência, soro'
+		AND (upper(de_resultado) LIKE '%POSITIVO%' 
+				OR upper(de_resultado) LIKE 'DETECTADO%'
+				OR upper(de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
+				OR upper(de_resultado) LIKE 'REAGENTE%'
+				OR upper(de_resultado) LIKE 'AMOSTRA REAGENTE%')
+		AND upper(de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
+	GROUP BY de_exame;
+
+/*
+PCR: 12160 exames com 4583 positivos
+Sorologia: 5467 exames com 373 positivos
+	Com esses dados, constatamos que o exame de PCR acusou positivo para covid em 37,6% dos casos e o exame de sorologia apenas em 6%.
+Visto isso, podemos nos atentar a duas possibilidades, o exame de Sorologia está sujeito a apresentar muitos falsos negativos ou
+os pacientes realizaram o exame sem respeitar o tempo mínimo de 7 dias após os sintomas para realizá-lo pois esse exame não detecta o vírus
+e sim a presença de anticorpos.
+*/
+
 /* 	Parte 2: Analisando a quantidade de registros de um determinado exame de COVID em
 relação a data de coleta ou período (por exemplo semanal), é possível indicar tendências de alta
 e/ou baixa que auxiliariam a especialistas médicos em analises futuras? */
 
+-- Casos positivos agrupados e ordenados por mês a fim de identificar altas e baixas, o ideal seria ter os dados de 2021 para comparar. 
+SELECT EXTRACT(MONTH FROM dt_coleta) as mes, COUNT(DISTINCT(id_paciente)) AS casos_positivos FROM exames
+		WHERE upper(de_exame) LIKE '%COVID%'
+		AND (upper(de_resultado) LIKE '%POSITIVO%' 
+				OR upper(de_resultado) LIKE 'DETECTADO%'
+				OR upper(de_resultado) LIKE 'DETECTADOS ANTICORPOS%' 
+				OR upper(de_resultado) LIKE 'REAGENTE%'
+				OR upper(de_resultado) LIKE 'AMOSTRA REAGENTE%')
+		AND upper(de_resultado) NOT LIKE '%A DINÂMICA DE PRODUÇÃO DE ANTICORPOS NA COVID-19 AINDA NÃO É BEM ESTABELECIDA%'
+	GROUP BY mes
+	ORDER BY mes;
+
 /* 	Parte 3: Que tipo de informações adicionais, em versões futuras da base de dados, poderiam
 ser coletadas em novos hospitais para melhorar a qualidade dos dados analisados? */
 
-/* 
-	RELATÓRIO: é necessário realizar uma análise exploratória nos dados, selecionando informações relevantes
-	com base em algum critério pertinente, justificando sua relevância no auxílio a especialistas.
-*/
+/* Criando tabela VacinacaoCovid com campo id_paciente e vacina,
+assim será possível saber quais pacientes foram vacinados para covid, qual foi a vacina e qual dose */
+CREATE TABLE VacinacaoCovid
+(
+    id_paciente TEXT NOT NULL,
+	vacina TEXT NOT NULL,
+	dose CHAR NOT NULL,
+    CONSTRAINT vacina_id_paciente_fkey FOREIGN KEY (id_paciente)
+        REFERENCES pacientes (id_paciente) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+-- DROP TABLE VacinacaoCovid;
+
+/* Criando tabela VacinacaoCovid com campo id_exame e cepa,
+nessa tabela serão inseridos apenas ids de exame que confirmaram positivo para covid,
+com o id do exame podemos ter acesso a todas as informações relacionadas ao exame inclusive do paciente*/
+CREATE TABLE CepaCovid
+(
+	id_exame INTEGER NOT NULL,
+	cepa TEXT NOT NULL,
+    CONSTRAINT cepa_id_exame_fkey FOREIGN KEY (id_exame)
+        REFERENCES exames (id_exame) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+-- DROP TABLE CepaCovid;
+
