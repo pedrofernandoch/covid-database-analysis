@@ -280,7 +280,7 @@ Output:
 "teste rápido para sars-cov-2- pesquisa de anticorpos igg e igm (sorologia para covid-19)"	291
 */
 
-/* Pergunta: se a diferenã de porcentagem de casos positivos entre os exames for muito alta,
+/* Pergunta: se a diferença de porcentagem de casos positivos entre os exames for muito alta,
 isso pode indicar que um exame tem mais falsos negativos que o outro? */
 SELECT de_exame, COUNT(DISTINCT(id_paciente)) AS casos_positivos FROM exames
 		WHERE de_exame = 'covid-19-pcr para sars-cov-2, vários materiais (fleury)' OR de_exame = 'covid-19-sorologia igm e igg por quimiluminescência, soro'
