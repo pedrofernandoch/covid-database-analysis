@@ -5,7 +5,7 @@
 SELECT * FROM exames ex
 JOIN pacientes p ON p . id_paciente = ex . id_paciente
 JOIN desfechos d ON p . id_paciente = d . id_paciente
-WHERE ex . de_origem = 'Unidades de Internação'
+WHERE ex.de_origem = 'Unidades de Internação'
 LIMIT 20;
 
 EXPLAIN ANALYZE
@@ -94,8 +94,7 @@ AS $$
 		HintText TEXT;
 	BEGIN
 		IF passwordString IS NULL OR passwordString = '' THEN -- Conferindo se não é nulo
-			RAISE EXCEPTION null_value_not_allowed USING MESSAGE = 'Senha nula', HINT = 'Insira uma senha para ober seu retorno criptografado';
-			RETURN NULL;
+			RAISE EXCEPTION null_value_not_allowed USING MESSAGE = 'Senha nula', HINT = 'Insira uma senha para obter seu retorno criptografado';
 		ELSE -- Retornando senha criptografada
 			RETURN crypt(passwordString, gen_salt('md5'));
 		END IF;
@@ -104,29 +103,48 @@ AS $$
 				GET STACKED DIAGNOSTICS MessageText = MESSAGE_TEXT,	HintText = PG_EXCEPTION_HINT;
 				RAISE NOTICE E'Erro: %\nMensagem: %\nDica: %',
 				SQLSTATE, MessageText, HintText;
+			RETURN NULL;
+	END;
+$$
+-- DROP FUNCTION password_hash(TEXT);
+
+-- Testando função com alguns casos de teste
+DO $$
+	BEGIN
+		RAISE NOTICE 'Senha original: scc0541LabBD, Hash: %', password_hash('scc0541LabBD');
+		RAISE NOTICE 'Senha original: covid19-Fapesp, Hash: %', password_hash('covid19-Fapesp');
+		RAISE NOTICE 'Senha original: BˆrJgb, Hash: %', password_hash('BˆrJgb');
+		RAISE NOTICE 'Senha original: Z67&*T, Hash: %', password_hash('Z67&*T');
+		RAISE NOTICE 'Testando exeção com texto vazio: ';
+		RAISE NOTICE '%', password_hash('');
+		RAISE NOTICE 'Testando exeção com NULL: ';
+		RAISE NOTICE '%', password_hash(NULL);
 	END;
 $$
 
 -- Adicionando campo senha na tabela pacientes
 ALTER TABLE pacientes
     ADD COLUMN senha text;
+/*ALTER TABLE pacientes 
+	DROP COLUMN senha;*/
 	
--- Criando tabela temporária
+-- Criando tabela temporária para testar solução
 CREATE TABLE temp_pacientes AS 
 	SELECT * FROM pacientes LIMIT 5;
 
--- Atualizando senhas usando função de hash
+-- Atualizando senhas da tabela temporária usando função de hash com os campos id_paciente, ic_sexo e aa_nascimento
 UPDATE temp_pacientes
 	SET senha = password_hash(CONCAT(id_paciente, ic_sexo, aa_nascimento));
 
 -- Verificando atualização
-SELECT * FROM pacientes LIMIT 5;
-SELECT * FROM temp_pacientes;
+SELECT senha as senha_gerada FROM temp_pacientes;
 
 -- Testando autenticação
-SELECT (senha = crypt(CONCAT('d9fec23b3820f93a961841d569db8cb5', 'F', '1974'), senha)) AS senhaConfere FROM temp_pacientes WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
+SELECT (senha = crypt(CONCAT('d9fec23b3820f93a961841d569db8cb5', 'F', '1974'), senha)) AS senhaConfere FROM temp_pacientes
+	WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
 -- Retorno esperado: true
-SELECT (senha = crypt('senha errada', senha)) AS senhaConfere FROM temp_pacientes WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
+SELECT (senha = crypt('senha errada', senha)) AS senhaConfere FROM temp_pacientes
+	WHERE id_paciente = 'd9fec23b3820f93a961841d569db8cb5';
 -- Retorno esperado: false
 
 -- Removendo tabela temporária
@@ -146,12 +164,14 @@ CREATE OR REPLACE FUNCTION setPwdTriggerFunction()
 		RETURN NEW;
 	END;
 	$$
+-- DROP FUNCTION setPwdTriggerFunction();
 	
 -- Criando trigger que utilizará a função
 CREATE TRIGGER setPwd
     BEFORE INSERT ON pacientes
     FOR EACH ROW
 	EXECUTE PROCEDURE setPwdTriggerFunction();
+-- DROP TRIGGER setPwd ON pacientes;
 	
 -- Testando trigger
 INSERT INTO pacientes(
@@ -166,6 +186,9 @@ SELECT (senha = crypt(CONCAT('novoPacienteTeste', 'M', '2000'), senha)) AS senha
 SELECT (senha = crypt('senha errada', senha)) AS senhaConfere FROM pacientes WHERE id_paciente = 'novoPacienteTeste';
 -- Retorno esperado: false
 
+DELETE FROM pacientes
+  WHERE id_paciente = 'novoPacienteTeste';
+
 -- 	Parte 2: criar tabela LogAcesso (Campos necessários: data/hora, tipo de operação e tabela requisitada/alterada)
 
 -- Criando tabela LogAcesso
@@ -178,6 +201,7 @@ CREATE TABLE LogAcesso
     tabela char(30) NOT NULL,
     PRIMARY KEY (id)
 );
+-- DROP TABLE LogAcesso;
 
 /* 	Parte 3: rotina para criar logs na tabela LogAcesso quando os acessos e transações são realizados na base de dados
 OBS: deve analisar três situações pertinentes para realizar a coleta da informação automaticamente */
@@ -187,7 +211,6 @@ CREATE OR REPLACE FUNCTION newLogTriggerFunction()
 	RETURNS TRIGGER 
 	LANGUAGE PLPGSQL
 	AS $$
-	DECLARE	operacao CHAR;
 	BEGIN
 		INSERT INTO LogAcesso(
 			autor, carimbo_de_tempo, operacao, tabela)
@@ -195,12 +218,14 @@ CREATE OR REPLACE FUNCTION newLogTriggerFunction()
 		RETURN NEW;
 	END;
 	$$
+-- DROP FUNCTION newLogTriggerFunction();
 
 -- Criando trigger para tabela LogPacientes que utilizará a função
 CREATE TRIGGER LogPacientes
 	AFTER INSERT OR UPDATE OR DELETE ON pacientes
 	FOR EACH ROW
 	EXECUTE PROCEDURE newLogTriggerFunction();
+-- DROP TRIGGER LogPacientes ON pacientes;
 
 -- Adicionando paciente para gerar log
 INSERT INTO pacientes(
@@ -212,6 +237,7 @@ CREATE TRIGGER LogExames
 	AFTER INSERT OR UPDATE OR DELETE ON exames
 	FOR EACH ROW
 	EXECUTE PROCEDURE newLogTriggerFunction();
+-- DROP TRIGGER LogExames ON exames;
 	
 -- Adicionando exame para gerar log
 INSERT INTO exames(
@@ -223,13 +249,14 @@ CREATE TRIGGER LogDesfechos
 	AFTER INSERT OR UPDATE OR DELETE ON desfechos
 	FOR EACH ROW
 	EXECUTE PROCEDURE newLogTriggerFunction();
+-- DROP TRIGGER LogDesfechos ON desfechos;
 
 -- Adicionando desfecho para gerar log
 INSERT INTO desfechos(
 	id_paciente, id_atendimento, dt_atendimento, de_tipo_atendimento, id_clinica, de_clinica, dt_desfecho, de_desfecho, id_hospital)
 	VALUES ('testePacienteTrigger', 'testeAtendimentoTrigger', '2020-07-19', 'Ambulatorial', 11, 'Consulta', '2020-08-19', 'Alta a pedido', 1);
 
--- Deletando paciente teste, exame teste e desfecho teste
+-- Deletando paciente teste, exame teste e desfecho teste para gerar novos logs
 DELETE FROM desfechos WHERE id_paciente = 'testePacienteTrigger' AND id_atendimento = 'testeAtendimentoTrigger';
 DELETE FROM exames WHERE id_exame = 10000000;
 DELETE FROM pacientes WHERE id_paciente = 'testePacienteTrigger';
