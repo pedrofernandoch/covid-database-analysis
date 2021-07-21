@@ -17,6 +17,7 @@ EXPLAIN ANALYZE
 -- Parte 2: consulta frequente disponibilizada com uso de índices
 CREATE INDEX origExUnidIntern ON exames(id_exame)
 	WHERE de_origem = 'Unidades de Internação';
+-- DROP INDEX origExUnidIntern;
 
 EXPLAIN ANALYZE
 	SELECT * FROM exames ex
@@ -59,6 +60,7 @@ EXPLAIN ANALYZE
 -- Parte 4: consulta frequente proposta com uso de índices
 CREATE INDEX exameCovid ON exames(id_exame)
 	WHERE upper(de_exame) LIKE '%COVID%';
+-- DROP INDEX exameCovid;
 
 EXPLAIN ANALYZE
 	SELECT (EXTRACT(YEAR FROM e.dt_coleta) - p.aa_nascimento) AS idade, COUNT(DISTINCT e.id_paciente) AS casos_positivos  
@@ -74,11 +76,6 @@ EXPLAIN ANALYZE
 		AND to_char(e.dt_coleta, 'YYYY-MM') = '2020-12'
 	GROUP BY idade
 	ORDER BY casos_positivos DESC;
-
-/* 
-	RELATÓRIO: Justificar a consulta criada e a implementação do índice de acordo com a consulta, explicitando o
-	porquê do índice otimizar tal consulta, conforme visto durante as aulas.
-*/
 
 /****** Questão 2 ******/
 
@@ -263,12 +260,6 @@ DELETE FROM pacientes WHERE id_paciente = 'testePacienteTrigger';
 
 -- Vendo logs gerados
 SELECT * FROM LogAcesso;
-
-/* 
-	RELATÓRIO: as situações devem ser devidamente registradas e validadas por meios
-	de testes, além de serem sucintamente explicadas, em relação a semântica da
-	operação e relevância para o sistema em si.
-*/
 
 /****** Questão 3 ******/
 
